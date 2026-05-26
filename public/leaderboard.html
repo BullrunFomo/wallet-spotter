@@ -224,7 +224,7 @@
         return `
           <tr>
             <td class="rank">${i + 1}</td>
-            <td class="wallet"><a href="https://solscan.io/account/${w.wallet}" target="_blank" rel="noopener">${shortAddr(w.wallet)}</a></td>
+            <td class="wallet"><a href="/wallet.html?address=${encodeURIComponent(w.wallet)}">${shortAddr(w.wallet)}</a></td>
             <td class="num" data-label="Avg Entry MC">${w.avgEntryMcap ? fmtUsd(w.avgEntryMcap) : '—'}</td>
             <td class="num" data-label="Avg Exit MC">${w.avgExitMcap ? fmtUsd(w.avgExitMcap) : '—'}</td>
             <td class="num" data-label="Tokens">${w.tokens}</td>

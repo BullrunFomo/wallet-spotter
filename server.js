@@ -100,6 +100,10 @@ async function recordScan(tokenAddress, items, ticker) {
       pnl: Number(it.realizedPnl) || 0,
       entryMcap: Number(it.entryMcap) || 0,
       exitMcap: Number(it.exitMcap) || 0,
+      volumeBuy: Number(it.volumeBuy) || 0,
+      volumeSell: Number(it.volumeSell) || 0,
+      volumeBuyUsd: Number(it.volumeBuyUsd) || 0,
+      volumeSellUsd: Number(it.volumeSellUsd) || 0,
       scannedAt: now,
     });
   }
@@ -185,40 +189,113 @@ app.get('/api/leaderboard', async (_req, res) => {
   }
 });
 
+function buildHistory(store) {
+  const byAddress = new Map();
+  const scansByToken = new Map();
+  for (const s of store.scans) {
+    if (!s.token) continue;
+    const list = scansByToken.get(s.token) || [];
+    list.push(s);
+    scansByToken.set(s.token, list);
+  }
+  for (const [address, list] of scansByToken) {
+    let totalPnl = 0, entrySum = 0, entryCount = 0, exitSum = 0, exitCount = 0, latest = 0;
+    for (const s of list) {
+      totalPnl += Number(s.pnl) || 0;
+      const entry = Number(s.entryMcap) || 0;
+      const exit = Number(s.exitMcap) || 0;
+      if (entry) { entrySum += entry; entryCount++; }
+      if (exit) { exitSum += exit; exitCount++; }
+      if (s.scannedAt > latest) latest = s.scannedAt;
+    }
+    byAddress.set(address, {
+      address,
+      ticker: '',
+      scannedAt: latest,
+      traderCount: list.length,
+      totalPnl,
+      avgEntryMcap: entryCount ? entrySum / entryCount : 0,
+      avgExitMcap: exitCount ? exitSum / exitCount : 0,
+    });
+  }
+  for (const t of store.tokens) byAddress.set(t.address, t);
+  return [...byAddress.values()].sort((a, b) => (b.scannedAt || 0) - (a.scannedAt || 0));
+}
+
+let backfillInFlight = null;
+
+async function backfillMissingTickers() {
+  const store = await loadStore();
+  const history = buildHistory(store);
+  const missing = history.filter(t => !t.ticker);
+  if (!missing.length) return;
+
+  const fetched = await Promise.all(missing.map(async (t) => {
+    try {
+      const tokenInfo = await stGet(`/tokens/${encodeURIComponent(t.address)}`);
+      const ticker = tokenInfo?.token?.symbol || tokenInfo?.symbol || '';
+      return { address: t.address, ticker, record: t };
+    } catch (err) {
+      console.error('backfill ticker failed for', t.address, err.message);
+      return { address: t.address, ticker: '', record: t };
+    }
+  }));
+
+  const fresh = await loadStore();
+  const byAddress = new Map(fresh.tokens.map(t => [t.address, { ...t }]));
+  for (const { address, ticker, record } of fetched) {
+    if (!ticker) continue;
+    if (byAddress.has(address)) {
+      byAddress.get(address).ticker = ticker;
+    } else {
+      byAddress.set(address, { ...record, ticker });
+    }
+  }
+  await saveStore({ scans: fresh.scans, tokens: [...byAddress.values()] });
+}
+
 app.get('/api/history', async (_req, res) => {
   try {
-    const { scans, tokens } = await loadStore();
-    const byAddress = new Map();
-    const scansByToken = new Map();
-    for (const s of scans) {
-      if (!s.token) continue;
-      const list = scansByToken.get(s.token) || [];
-      list.push(s);
-      scansByToken.set(s.token, list);
+    const store = await loadStore();
+    const merged = buildHistory(store);
+    if (merged.some(t => !t.ticker) && !backfillInFlight) {
+      backfillInFlight = backfillMissingTickers()
+        .catch(err => console.error('backfillMissingTickers failed:', err))
+        .finally(() => { backfillInFlight = null; });
     }
-    for (const [address, list] of scansByToken) {
-      let totalPnl = 0, entrySum = 0, entryCount = 0, exitSum = 0, exitCount = 0, latest = 0;
-      for (const s of list) {
-        totalPnl += Number(s.pnl) || 0;
+    res.json({ tokens: merged });
+  } catch (err) {
+    res.status(500).json({ error: err.message || String(err) });
+  }
+});
+
+app.get('/api/wallet', async (req, res) => {
+  const { address } = req.query;
+  if (!address) return res.status(400).json({ error: 'address query parameter is required' });
+  try {
+    const { scans, tokens } = await loadStore();
+    const tokenMeta = new Map(tokens.map(t => [t.address, t]));
+    const trades = scans
+      .filter(s => s.wallet === address)
+      .map(s => {
         const entry = Number(s.entryMcap) || 0;
         const exit = Number(s.exitMcap) || 0;
-        if (entry) { entrySum += entry; entryCount++; }
-        if (exit) { exitSum += exit; exitCount++; }
-        if (s.scannedAt > latest) latest = s.scannedAt;
-      }
-      byAddress.set(address, {
-        address,
-        ticker: '',
-        scannedAt: latest,
-        traderCount: list.length,
-        totalPnl,
-        avgEntryMcap: entryCount ? entrySum / entryCount : 0,
-        avgExitMcap: exitCount ? exitSum / exitCount : 0,
-      });
-    }
-    for (const t of tokens) byAddress.set(t.address, t);
-    const merged = [...byAddress.values()].sort((a, b) => (b.scannedAt || 0) - (a.scannedAt || 0));
-    res.json({ tokens: merged });
+        return {
+          token: s.token,
+          ticker: tokenMeta.get(s.token)?.ticker || '',
+          volumeBuy: Number(s.volumeBuy) || 0,
+          volumeSell: Number(s.volumeSell) || 0,
+          volumeBuyUsd: Number(s.volumeBuyUsd) || 0,
+          volumeSellUsd: Number(s.volumeSellUsd) || 0,
+          entryMcap: entry,
+          exitMcap: exit,
+          multiple: entry > 0 && exit > 0 ? exit / entry : 0,
+          pnl: Number(s.pnl) || 0,
+          scannedAt: s.scannedAt || 0,
+        };
+      })
+      .sort((a, b) => b.pnl - a.pnl);
+    res.json({ wallet: address, trades });
   } catch (err) {
     res.status(500).json({ error: err.message || String(err) });
   }
