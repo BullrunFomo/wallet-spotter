@@ -92,7 +92,7 @@
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 14px;
-      margin-top: 20px;
+      margin-bottom: 20px;
     }
     .stat {
       background: var(--panel);
@@ -161,7 +161,7 @@
       }
       tbody td.addr::before { display: none; }
       tbody td.addr a { font-size: 14px; }
-      .stats { grid-template-columns: 1fr; gap: 10px; margin-top: 16px; }
+      .stats { grid-template-columns: 1fr; gap: 10px; margin-bottom: 16px; }
       .stat { padding: 14px 16px; }
       .stat .value { font-size: 24px; }
     }
@@ -179,9 +179,9 @@
     </div>
     <div class="sub" id="walletSub">Loading…</div>
 
+    <div class="stats" id="stats" hidden></div>
     <div id="results"><div class="status">Loading…</div></div>
     <div class="meta" id="meta"></div>
-    <div class="stats" id="stats" hidden></div>
   </div>
 
   <script>
