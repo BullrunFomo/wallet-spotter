@@ -67,7 +67,7 @@ function aggregateByWallet(scans) {
   })).sort((a, b) => b.avgMultiple - a.avgMultiple);
 }
 
-function summarizeToken(tokenAddress, items, scannedAt) {
+function summarizeToken(tokenAddress, items, scannedAt, ticker) {
   let totalPnl = 0, entrySum = 0, entryCount = 0, exitSum = 0, exitCount = 0;
   for (const it of items) {
     totalPnl += Number(it.realizedPnl) || 0;
@@ -78,6 +78,7 @@ function summarizeToken(tokenAddress, items, scannedAt) {
   }
   return {
     address: tokenAddress,
+    ticker: ticker || '',
     scannedAt,
     traderCount: items.length,
     totalPnl,
@@ -86,7 +87,7 @@ function summarizeToken(tokenAddress, items, scannedAt) {
   };
 }
 
-async function recordScan(tokenAddress, items) {
+async function recordScan(tokenAddress, items, ticker) {
   const store = await loadStore();
   const now = Date.now();
   const byKey = new Map();
@@ -107,7 +108,7 @@ async function recordScan(tokenAddress, items) {
   const trimmed = merged.filter(s => topWallets.has(s.wallet));
 
   const tokens = store.tokens.filter(t => t.address !== tokenAddress);
-  tokens.push(summarizeToken(tokenAddress, items, now));
+  tokens.push(summarizeToken(tokenAddress, items, now, ticker));
 
   await saveStore({ scans: trimmed, tokens });
 }
@@ -129,8 +130,9 @@ async function fetchSolanaTracker(address) {
     stGet(`/tokens/${encodeURIComponent(address)}`).catch(() => null),
   ]);
   const totalSupply = Number(tokenInfo?.pools?.[0]?.tokenSupply || 0);
+  const ticker = tokenInfo?.token?.symbol || tokenInfo?.symbol || '';
   const list = Array.isArray(traders) ? traders : (traders?.traders || traders?.data || []);
-  return list.map(it => {
+  const items = list.map(it => {
     const held = Number(it.held || 0);
     const sold = Number(it.sold || 0);
     const bought = held + sold;
@@ -153,6 +155,7 @@ async function fetchSolanaTracker(address) {
       exitMcap: avgExit * totalSupply,
     };
   });
+  return { items, ticker };
 }
 
 app.get('/api/top-traders', async (req, res) => {
@@ -164,8 +167,8 @@ app.get('/api/top-traders', async (req, res) => {
     if (store.tokens.some(t => t.address === address) || store.scans.some(s => s.token === address)) {
       return res.status(409).json({ error: 'Token already scanned' });
     }
-    const items = await fetchSolanaTracker(address);
-    recordScan(address, items).catch(err => console.error('recordScan failed:', err));
+    const { items, ticker } = await fetchSolanaTracker(address);
+    recordScan(address, items, ticker).catch(err => console.error('recordScan failed:', err));
     res.json({ source: 'solanatracker', items });
   } catch (err) {
     res.status(502).json({ error: err.message || String(err) });
@@ -205,6 +208,7 @@ app.get('/api/history', async (_req, res) => {
       }
       byAddress.set(address, {
         address,
+        ticker: '',
         scannedAt: latest,
         traderCount: list.length,
         totalPnl,

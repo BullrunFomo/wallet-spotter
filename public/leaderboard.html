@@ -74,6 +74,11 @@
       font-size: 11px;
       letter-spacing: 0.08em;
     }
+    th.sortable { cursor: pointer; user-select: none; transition: color 0.12s ease; }
+    th.sortable:hover { color: var(--text); }
+    th.sortable .arrow { display: inline-block; margin-left: 4px; opacity: 0.35; font-size: 10px; }
+    th.sortable.active { color: var(--accent); }
+    th.sortable.active .arrow { opacity: 1; }
     tbody tr { transition: background-color 0.12s ease; }
     tbody tr:hover { background: rgba(217, 119, 87, 0.04); }
     tr:last-child td { border-bottom: none; }
@@ -181,6 +186,83 @@
     const fmtUsd = (n) => '$' + fmtNum(n);
     const shortAddr = (a) => (a ? a.slice(0, 4) + '…' + a.slice(-4) : '');
 
+    const columns = [
+      { key: 'wallet', label: 'Wallet', align: 'left', defaultDir: 'asc',
+        get: (w) => (w.wallet || '').toLowerCase(), type: 'string' },
+      { key: 'avgEntryMcap', label: 'Avg Entry MC', align: 'right', defaultDir: 'desc',
+        get: (w) => Number(w.avgEntryMcap) || 0, type: 'number' },
+      { key: 'avgExitMcap', label: 'Avg Exit MC', align: 'right', defaultDir: 'desc',
+        get: (w) => Number(w.avgExitMcap) || 0, type: 'number' },
+      { key: 'tokens', label: 'Tokens', align: 'right', defaultDir: 'desc',
+        get: (w) => Number(w.tokens) || 0, type: 'number' },
+      { key: 'avgMultiple', label: 'Avg Multiple', align: 'right', defaultDir: 'desc',
+        get: (w) => Number(w.avgMultiple) || 0, type: 'number' },
+      { key: 'pnl', label: 'Overall PNL', align: 'right', defaultDir: 'desc',
+        get: (w) => Number(w.pnl) || 0, type: 'number' },
+    ];
+
+    let wallets = [];
+    let sortKey = 'avgMultiple';
+    let sortDir = 'desc';
+
+    function sortedWallets() {
+      const col = columns.find(c => c.key === sortKey);
+      if (!col) return wallets.slice();
+      const sign = sortDir === 'asc' ? 1 : -1;
+      return wallets.slice().sort((a, b) => {
+        const va = col.get(a), vb = col.get(b);
+        if (col.type === 'string') return sign * String(va).localeCompare(String(vb));
+        return sign * (va - vb);
+      });
+    }
+
+    function render() {
+      const sorted = sortedWallets();
+      const rows = sorted.map((w, i) => {
+        const pnlClass = w.pnl >= 0 ? 'buy' : 'sell';
+        const pnlSign = w.pnl >= 0 ? '+' : '-';
+        return `
+          <tr>
+            <td class="rank">${i + 1}</td>
+            <td class="wallet"><a href="https://solscan.io/account/${w.wallet}" target="_blank" rel="noopener">${shortAddr(w.wallet)}</a></td>
+            <td class="num" data-label="Avg Entry MC">${w.avgEntryMcap ? fmtUsd(w.avgEntryMcap) : '—'}</td>
+            <td class="num" data-label="Avg Exit MC">${w.avgExitMcap ? fmtUsd(w.avgExitMcap) : '—'}</td>
+            <td class="num" data-label="Tokens">${w.tokens}</td>
+            <td class="num" data-label="Avg Multiple">${w.avgMultiple ? w.avgMultiple.toFixed(2) + 'x' : '—'}</td>
+            <td class="num ${pnlClass}" data-label="Overall PNL">${pnlSign}${fmtUsd(Math.abs(w.pnl))}</td>
+          </tr>`;
+      }).join('');
+      const headers = columns.map(c => {
+        const active = c.key === sortKey;
+        const arrow = active ? (sortDir === 'asc' ? '▲' : '▼') : '▼';
+        const style = c.align === 'right' ? ' style="text-align:right"' : '';
+        return `<th class="sortable${active ? ' active' : ''}" data-key="${c.key}"${style}>${c.label}<span class="arrow">${arrow}</span></th>`;
+      }).join('');
+      results.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>${headers}
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+      const col = columns.find(c => c.key === sortKey);
+      meta.textContent = `Showing ${sorted.length} wallets · sorted by ${col ? col.label.toLowerCase() : sortKey} ${sortDir === 'asc' ? 'ascending' : 'descending'}`;
+      results.querySelectorAll('th.sortable').forEach(th => {
+        th.addEventListener('click', () => {
+          const key = th.getAttribute('data-key');
+          if (key === sortKey) {
+            sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+          } else {
+            sortKey = key;
+            sortDir = columns.find(c => c.key === key).defaultDir;
+          }
+          render();
+        });
+      });
+    }
+
     (async () => {
       try {
         const r = await fetch('/api/leaderboard');
@@ -189,40 +271,12 @@
           results.innerHTML = '<div class="error">' + (data.error || 'Request failed') + '</div>';
           return;
         }
-        const wallets = data.wallets || [];
+        wallets = data.wallets || [];
         if (!wallets.length) {
           results.innerHTML = '<div class="status">No traders scanned yet. Run a lookup on the token scanner page first.</div>';
           return;
         }
-        const rows = wallets.map((w, i) => {
-          const pnlClass = w.pnl >= 0 ? 'buy' : 'sell';
-          const pnlSign = w.pnl >= 0 ? '+' : '-';
-          return `
-            <tr>
-              <td class="rank">${i + 1}</td>
-              <td class="wallet"><a href="https://solscan.io/account/${w.wallet}" target="_blank" rel="noopener">${shortAddr(w.wallet)}</a></td>
-              <td class="num" data-label="Avg Entry MC">${w.avgEntryMcap ? fmtUsd(w.avgEntryMcap) : '—'}</td>
-              <td class="num" data-label="Avg Exit MC">${w.avgExitMcap ? fmtUsd(w.avgExitMcap) : '—'}</td>
-              <td class="num" data-label="Tokens">${w.tokens}</td>
-              <td class="num" data-label="Avg Multiple">${w.avgMultiple ? w.avgMultiple.toFixed(2) + 'x' : '—'}</td>
-              <td class="num ${pnlClass}" data-label="Overall PNL">${pnlSign}${fmtUsd(Math.abs(w.pnl))}</td>
-            </tr>`;
-        }).join('');
-        results.innerHTML = `
-          <table>
-            <thead>
-              <tr>
-                <th>#</th><th>Wallet</th>
-                <th style="text-align:right">Avg Entry MC</th>
-                <th style="text-align:right">Avg Exit MC</th>
-                <th style="text-align:right">Tokens</th>
-                <th style="text-align:right">Avg Multiple</th>
-                <th style="text-align:right">Overall PNL</th>
-              </tr>
-            </thead>
-            <tbody>${rows}</tbody>
-          </table>`;
-        meta.textContent = `Showing top ${wallets.length} of ${wallets.length} wallets · sorted by avg multiple`;
+        render();
       } catch (err) {
         results.innerHTML = '<div class="error">' + String(err) + '</div>';
       }

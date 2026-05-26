@@ -180,11 +180,7 @@
     };
     const fmtUsd = (n) => '$' + fmtNum(n);
     const shortAddr = (a) => (a ? a.slice(0, 4) + '…' + a.slice(-4) : '');
-    const fmtDate = (ts) => {
-      if (!ts) return '—';
-      const d = new Date(ts);
-      return d.toLocaleString(undefined, { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-    };
+    const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
     (async () => {
       try {
@@ -203,11 +199,12 @@
           const pnl = Number(t.totalPnl) || 0;
           const pnlClass = pnl >= 0 ? 'buy' : 'sell';
           const pnlSign = pnl >= 0 ? '+' : '-';
+          const ticker = t.ticker ? escapeHtml(t.ticker) : '—';
           return `
             <tr>
               <td class="rank">${i + 1}</td>
               <td class="addr"><a href="https://solscan.io/token/${t.address}" target="_blank" rel="noopener">${shortAddr(t.address)}</a></td>
-              <td class="num" data-label="Scanned">${fmtDate(t.scannedAt)}</td>
+              <td class="num" data-label="Ticker">${ticker}</td>
               <td class="num" data-label="Traders">${t.traderCount || 0}</td>
               <td class="num" data-label="Avg Entry MC">${t.avgEntryMcap ? fmtUsd(t.avgEntryMcap) : '—'}</td>
               <td class="num" data-label="Avg Exit MC">${t.avgExitMcap ? fmtUsd(t.avgExitMcap) : '—'}</td>
@@ -219,7 +216,7 @@
             <thead>
               <tr>
                 <th>#</th><th>Token</th>
-                <th style="text-align:right">Scanned</th>
+                <th style="text-align:right">Ticker</th>
                 <th style="text-align:right">Traders</th>
                 <th style="text-align:right">Avg Entry MC</th>
                 <th style="text-align:right">Avg Exit MC</th>
