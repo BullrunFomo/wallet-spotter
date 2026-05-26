@@ -294,7 +294,7 @@ app.get('/api/wallet', async (req, res) => {
           scannedAt: s.scannedAt || 0,
         };
       })
-      .sort((a, b) => b.pnl - a.pnl);
+      .sort((a, b) => b.multiple - a.multiple);
     res.json({ wallet: address, trades });
   } catch (err) {
     res.status(500).json({ error: err.message || String(err) });

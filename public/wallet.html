@@ -203,6 +203,8 @@
                 <td class="num" data-label="Sell">${fmtNum(t.volumeSell)}</td>
                 <td class="num buy" data-label="Buy $">${fmtUsd(t.volumeBuyUsd)}</td>
                 <td class="num sell" data-label="Sell $">${fmtUsd(t.volumeSellUsd)}</td>
+                <td class="num" data-label="Entry MC">${t.entryMcap ? fmtUsd(t.entryMcap) : '—'}</td>
+                <td class="num" data-label="Exit MC">${t.exitMcap ? fmtUsd(t.exitMcap) : '—'}</td>
                 <td class="num" data-label="Multiple">${t.multiple ? t.multiple.toFixed(2) + 'x' : '—'}</td>
                 <td class="num ${pnlClass}" data-label="PNL">${pnlSign}${fmtUsd(Math.abs(t.pnl))}</td>
               </tr>`;
@@ -217,13 +219,15 @@
                   <th style="text-align:right">Sell</th>
                   <th style="text-align:right">Buy $</th>
                   <th style="text-align:right">Sell $</th>
+                  <th style="text-align:right">Entry MC</th>
+                  <th style="text-align:right">Exit MC</th>
                   <th style="text-align:right">Multiple</th>
                   <th style="text-align:right">PNL</th>
                 </tr>
               </thead>
               <tbody>${rows}</tbody>
             </table>`;
-          meta.textContent = `${trades.length} token${trades.length === 1 ? '' : 's'} traded · sorted by PNL`;
+          meta.textContent = `${trades.length} token${trades.length === 1 ? '' : 's'} traded · sorted by multiple`;
         } catch (err) {
           results.innerHTML = '<div class="error">' + String(err) + '</div>';
         }
