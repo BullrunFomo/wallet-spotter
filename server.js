@@ -21,19 +21,22 @@ app.use(express.static(path.join(__dirname, 'public')));
 const DATA_FILE = path.join(__dirname, 'data', 'traders.json');
 const MAX_WALLETS = 200;
 
-async function loadScans() {
+async function loadStore() {
   try {
     const text = await fs.readFile(DATA_FILE, 'utf8');
     const parsed = JSON.parse(text);
-    return Array.isArray(parsed?.scans) ? parsed.scans : [];
+    return {
+      scans: Array.isArray(parsed?.scans) ? parsed.scans : [],
+      tokens: Array.isArray(parsed?.tokens) ? parsed.tokens : [],
+    };
   } catch {
-    return [];
+    return { scans: [], tokens: [] };
   }
 }
 
-async function saveScans(scans) {
+async function saveStore(store) {
   await fs.mkdir(path.dirname(DATA_FILE), { recursive: true });
-  await fs.writeFile(DATA_FILE, JSON.stringify({ scans }, null, 2));
+  await fs.writeFile(DATA_FILE, JSON.stringify(store, null, 2));
 }
 
 function aggregateByWallet(scans) {
@@ -64,11 +67,30 @@ function aggregateByWallet(scans) {
   })).sort((a, b) => b.avgMultiple - a.avgMultiple);
 }
 
+function summarizeToken(tokenAddress, items, scannedAt) {
+  let totalPnl = 0, entrySum = 0, entryCount = 0, exitSum = 0, exitCount = 0;
+  for (const it of items) {
+    totalPnl += Number(it.realizedPnl) || 0;
+    const entry = Number(it.entryMcap) || 0;
+    const exit = Number(it.exitMcap) || 0;
+    if (entry) { entrySum += entry; entryCount++; }
+    if (exit) { exitSum += exit; exitCount++; }
+  }
+  return {
+    address: tokenAddress,
+    scannedAt,
+    traderCount: items.length,
+    totalPnl,
+    avgEntryMcap: entryCount ? entrySum / entryCount : 0,
+    avgExitMcap: exitCount ? exitSum / exitCount : 0,
+  };
+}
+
 async function recordScan(tokenAddress, items) {
-  const scans = await loadScans();
+  const store = await loadStore();
   const now = Date.now();
   const byKey = new Map();
-  for (const s of scans) byKey.set(`${s.wallet}#${s.token}`, s);
+  for (const s of store.scans) byKey.set(`${s.wallet}#${s.token}`, s);
   for (const it of items) {
     if (!it.owner) continue;
     byKey.set(`${it.owner}#${tokenAddress}`, {
@@ -83,7 +105,11 @@ async function recordScan(tokenAddress, items) {
   const merged = [...byKey.values()];
   const topWallets = new Set(aggregateByWallet(merged).slice(0, MAX_WALLETS).map(w => w.wallet));
   const trimmed = merged.filter(s => topWallets.has(s.wallet));
-  await saveScans(trimmed);
+
+  const tokens = store.tokens.filter(t => t.address !== tokenAddress);
+  tokens.push(summarizeToken(tokenAddress, items, now));
+
+  await saveStore({ scans: trimmed, tokens });
 }
 
 async function stGet(pathname) {
@@ -134,8 +160,8 @@ app.get('/api/top-traders', async (req, res) => {
   if (!address) return res.status(400).json({ error: 'address query parameter is required' });
 
   try {
-    const scans = await loadScans();
-    if (scans.some(s => s.token === address)) {
+    const store = await loadStore();
+    if (store.tokens.some(t => t.address === address) || store.scans.some(s => s.token === address)) {
       return res.status(409).json({ error: 'Token already scanned' });
     }
     const items = await fetchSolanaTracker(address);
@@ -148,9 +174,19 @@ app.get('/api/top-traders', async (req, res) => {
 
 app.get('/api/leaderboard', async (_req, res) => {
   try {
-    const scans = await loadScans();
+    const { scans } = await loadStore();
     const wallets = aggregateByWallet(scans).slice(0, MAX_WALLETS);
     res.json({ wallets });
+  } catch (err) {
+    res.status(500).json({ error: err.message || String(err) });
+  }
+});
+
+app.get('/api/history', async (_req, res) => {
+  try {
+    const { tokens } = await loadStore();
+    const sorted = [...tokens].sort((a, b) => (b.scannedAt || 0) - (a.scannedAt || 0));
+    res.json({ tokens: sorted });
   } catch (err) {
     res.status(500).json({ error: err.message || String(err) });
   }

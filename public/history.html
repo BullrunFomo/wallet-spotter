@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Wallet Spotter — Top Traders</title>
+  <title>Wallet Spotter — Scan History</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
@@ -46,66 +46,12 @@
       letter-spacing: -0.025em;
       color: var(--text);
     }
-    h1 em {
-      font-style: italic;
-      color: var(--accent);
-      font-weight: 400;
-    }
+    h1 em { font-style: italic; color: var(--accent); font-weight: 400; }
     .sub { color: var(--muted); margin-bottom: 28px; font-size: 14px; }
     .nav { display: flex; gap: 22px; font-size: 13px; flex-shrink: 0; }
     .nav a { color: var(--muted); text-decoration: none; padding-bottom: 4px; border-bottom: 2px solid transparent; transition: color 0.15s, border-color 0.15s; }
     .nav a:hover { color: var(--text); }
     .nav a.active { color: var(--accent); border-bottom-color: var(--accent); }
-    form {
-      display: flex;
-      align-items: stretch;
-      background: var(--panel-2);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      margin-bottom: 24px;
-      overflow: hidden;
-      transition: border-color 0.15s ease, box-shadow 0.15s ease;
-    }
-    form:focus-within {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.15);
-    }
-    .input-wrap {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      padding-left: 16px;
-      gap: 10px;
-    }
-    .input-wrap svg { flex-shrink: 0; color: var(--muted); }
-    input {
-      flex: 1;
-      padding: 14px 14px 14px 0;
-      background: transparent;
-      color: var(--text);
-      border: none;
-      font-size: 14px;
-      font-family: inherit;
-      min-width: 0;
-    }
-    input::placeholder { color: var(--muted); }
-    input:focus { outline: none; }
-    button {
-      padding: 0 24px;
-      background: var(--accent);
-      color: #0A0A0A;
-      border: none;
-      font-size: 14px;
-      font-weight: 600;
-      font-family: inherit;
-      cursor: pointer;
-      letter-spacing: 0.01em;
-      transition: background-color 0.15s ease;
-      margin: 6px;
-      border-radius: 8px;
-    }
-    button:hover:not(:disabled) { background: var(--accent-hover); }
-    button:disabled { opacity: 0.55; cursor: not-allowed; }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -132,30 +78,20 @@
     tbody tr:hover { background: rgba(217, 119, 87, 0.04); }
     tr:last-child td { border-bottom: none; }
     td.num { text-align: right; font-variant-numeric: tabular-nums; }
-    .wallet { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 12.5px; }
-    .wallet a { color: var(--accent); text-decoration: none; }
-    .wallet a:hover { text-decoration: underline; }
+    .addr { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 12.5px; }
+    .addr a { color: var(--accent); text-decoration: none; }
+    .addr a:hover { text-decoration: underline; }
     .buy { color: var(--buy); }
     .sell { color: var(--sell); }
     .status { color: var(--muted); padding: 24px; text-align: center; font-size: 14px; }
-    .error {
-      color: var(--sell);
-      background: rgba(215, 123, 109, 0.08);
-      border: 1px solid rgba(215, 123, 109, 0.3);
-      padding: 14px 16px;
-      border-radius: 10px;
-      font-size: 14px;
-    }
+    .error { color: var(--sell); background: rgba(215, 123, 109, 0.08); border: 1px solid rgba(215, 123, 109, 0.3); padding: 14px 16px; border-radius: 10px; font-size: 14px; }
+    .meta { color: var(--muted); font-size: 12px; margin-top: 12px; }
     @media (max-width: 720px) {
       body { padding: 24px 16px 80px; font-size: 14px; }
       .header { flex-direction: column; align-items: flex-start; gap: 14px; margin-bottom: 4px; }
       h1 { font-size: 30px; }
       .sub { margin-bottom: 20px; font-size: 13px; }
       .nav { gap: 18px; font-size: 13px; width: 100%; }
-      form { border-radius: 14px; margin-bottom: 18px; }
-      .input-wrap { padding-left: 14px; }
-      input { padding: 13px 12px 13px 0; font-size: 16px; }
-      button { padding: 12px 18px; margin: 5px; border-radius: 10px; font-size: 14px; }
 
       table, thead, tbody, tr, td { display: block; width: 100%; }
       table { background: transparent; border: none; border-radius: 0; overflow: visible; }
@@ -203,14 +139,14 @@
         width: auto;
       }
       tbody td.rank::before { content: '#'; margin-right: 1px; }
-      tbody td.wallet {
+      tbody td.addr {
         padding: 0 60px 10px 0;
         margin-bottom: 6px;
         border-bottom: 1px solid var(--border);
         font-size: 14px;
       }
-      tbody td.wallet::before { display: none; }
-      tbody td.wallet a { font-size: 14px; }
+      tbody td.addr::before { display: none; }
+      tbody td.addr a { font-size: 14px; }
     }
   </style>
 </head>
@@ -219,31 +155,20 @@
     <div class="header">
       <h1>Wallet <em>Spotter</em></h1>
       <nav class="nav">
-        <a href="/" class="active">Token scanner</a>
+        <a href="/">Token scanner</a>
         <a href="/leaderboard.html">Leaderboard</a>
-        <a href="/history.html">History</a>
+        <a href="/history.html" class="active">History</a>
       </nav>
     </div>
-    <div class="sub">Top traders for a Solana token</div>
+    <div class="sub">Every token you've scanned</div>
 
-    <form id="form">
-      <label class="input-wrap" for="address">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="11" cy="11" r="7"></circle>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-        </svg>
-        <input id="address" name="address" placeholder="Paste a Solana token contract address" required autocomplete="off" spellcheck="false" />
-      </label>
-      <button id="submit" type="submit">Look up</button>
-    </form>
-
-    <div id="results"></div>
+    <div id="results"><div class="status">Loading…</div></div>
+    <div class="meta" id="meta"></div>
   </div>
 
   <script>
-    const form = document.getElementById('form');
-    const submitBtn = document.getElementById('submit');
     const results = document.getElementById('results');
+    const meta = document.getElementById('meta');
 
     const fmtNum = (n) => {
       if (n === null || n === undefined || isNaN(n)) return '—';
@@ -255,73 +180,59 @@
     };
     const fmtUsd = (n) => '$' + fmtNum(n);
     const shortAddr = (a) => (a ? a.slice(0, 4) + '…' + a.slice(-4) : '');
+    const fmtDate = (ts) => {
+      if (!ts) return '—';
+      const d = new Date(ts);
+      return d.toLocaleString(undefined, { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    };
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const params = new URLSearchParams({
-        address: document.getElementById('address').value.trim(),
-      });
-
-      results.innerHTML = '<div class="status">Loading…</div>';
-      submitBtn.disabled = true;
-
+    (async () => {
       try {
-        const r = await fetch('/api/top-traders?' + params.toString());
+        const r = await fetch('/api/history');
         const data = await r.json();
         if (!r.ok || data.error) {
-          results.innerHTML = '<div class="error">' + (data.error || data.message || 'Request failed') + '</div>';
+          results.innerHTML = '<div class="error">' + (data.error || 'Request failed') + '</div>';
           return;
         }
-        const items = (data.items || []).slice();
-        if (!items.length) {
-          results.innerHTML = '<div class="status">No traders returned.</div>';
+        const tokens = data.tokens || [];
+        if (!tokens.length) {
+          results.innerHTML = '<div class="status">No tokens scanned yet. Run a lookup on the token scanner page first.</div>';
           return;
         }
-        items.sort((a, b) => {
-          const pnlA = a.realizedPnl != null ? a.realizedPnl : Number(a.volumeSellUsd || 0) - Number(a.volumeBuyUsd || 0);
-          const pnlB = b.realizedPnl != null ? b.realizedPnl : Number(b.volumeSellUsd || 0) - Number(b.volumeBuyUsd || 0);
-          return pnlB - pnlA;
-        });
-        const rows = items.map((t, i) => {
-          const addr = t.owner || '';
-          const pnl = t.realizedPnl != null ? Number(t.realizedPnl) : (Number(t.volumeSellUsd || 0) - Number(t.volumeBuyUsd || 0));
+        const rows = tokens.map((t, i) => {
+          const pnl = Number(t.totalPnl) || 0;
           const pnlClass = pnl >= 0 ? 'buy' : 'sell';
           const pnlSign = pnl >= 0 ? '+' : '-';
           return `
             <tr>
               <td class="rank">${i + 1}</td>
-              <td class="wallet"><a href="https://solscan.io/account/${addr}" target="_blank" rel="noopener">${shortAddr(addr)}</a></td>
-              <td class="num" data-label="Buy">${fmtNum(t.volumeBuy)}</td>
-              <td class="num" data-label="Sell">${fmtNum(t.volumeSell)}</td>
-              <td class="num buy" data-label="Buy $">${fmtUsd(t.volumeBuyUsd)}</td>
-              <td class="num sell" data-label="Sell $">${fmtUsd(t.volumeSellUsd)}</td>
-              <td class="num" data-label="Entry MC">${t.entryMcap ? fmtUsd(t.entryMcap) : '—'}</td>
-              <td class="num" data-label="Exit MC">${t.exitMcap ? fmtUsd(t.exitMcap) : '—'}</td>
-              <td class="num ${pnlClass}" data-label="PNL">${pnlSign}${fmtUsd(Math.abs(pnl))}</td>
+              <td class="addr"><a href="https://solscan.io/token/${t.address}" target="_blank" rel="noopener">${shortAddr(t.address)}</a></td>
+              <td class="num" data-label="Scanned">${fmtDate(t.scannedAt)}</td>
+              <td class="num" data-label="Traders">${t.traderCount || 0}</td>
+              <td class="num" data-label="Avg Entry MC">${t.avgEntryMcap ? fmtUsd(t.avgEntryMcap) : '—'}</td>
+              <td class="num" data-label="Avg Exit MC">${t.avgExitMcap ? fmtUsd(t.avgExitMcap) : '—'}</td>
+              <td class="num ${pnlClass}" data-label="Total PNL">${pnlSign}${fmtUsd(Math.abs(pnl))}</td>
             </tr>`;
         }).join('');
         results.innerHTML = `
           <table>
             <thead>
               <tr>
-                <th>#</th><th>Wallet</th>
-                <th style="text-align:right">Buy</th>
-                <th style="text-align:right">Sell</th>
-                <th style="text-align:right">Buy $</th>
-                <th style="text-align:right">Sell $</th>
-                <th style="text-align:right">Entry MC</th>
-                <th style="text-align:right">Exit MC</th>
-                <th style="text-align:right">PNL</th>
+                <th>#</th><th>Token</th>
+                <th style="text-align:right">Scanned</th>
+                <th style="text-align:right">Traders</th>
+                <th style="text-align:right">Avg Entry MC</th>
+                <th style="text-align:right">Avg Exit MC</th>
+                <th style="text-align:right">Total PNL</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
           </table>`;
+        meta.textContent = `${tokens.length} token${tokens.length === 1 ? '' : 's'} scanned · most recent first`;
       } catch (err) {
         results.innerHTML = '<div class="error">' + String(err) + '</div>';
-      } finally {
-        submitBtn.disabled = false;
       }
-    });
+    })();
   </script>
 </body>
 </html>
