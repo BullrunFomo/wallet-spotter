@@ -134,6 +134,10 @@ app.get('/api/top-traders', async (req, res) => {
   if (!address) return res.status(400).json({ error: 'address query parameter is required' });
 
   try {
+    const scans = await loadScans();
+    if (scans.some(s => s.token === address)) {
+      return res.status(409).json({ error: 'Token already scanned' });
+    }
     const items = await fetchSolanaTracker(address);
     recordScan(address, items).catch(err => console.error('recordScan failed:', err));
     res.json({ source: 'solanatracker', items });

@@ -52,9 +52,6 @@
     .nav a { color: var(--muted); text-decoration: none; padding-bottom: 4px; border-bottom: 2px solid transparent; transition: color 0.15s, border-color 0.15s; }
     .nav a:hover { color: var(--text); }
     .nav a.active { color: var(--accent); border-bottom-color: var(--accent); }
-    @media (max-width: 600px) {
-      .header { flex-direction: column; align-items: flex-start; gap: 12px; }
-    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -89,6 +86,68 @@
     .status { color: var(--muted); padding: 24px; text-align: center; font-size: 14px; }
     .error { color: var(--sell); background: rgba(215, 123, 109, 0.08); border: 1px solid rgba(215, 123, 109, 0.3); padding: 14px 16px; border-radius: 10px; font-size: 14px; }
     .meta { color: var(--muted); font-size: 12px; margin-top: 12px; }
+    @media (max-width: 720px) {
+      body { padding: 24px 16px 80px; font-size: 14px; }
+      .header { flex-direction: column; align-items: flex-start; gap: 14px; margin-bottom: 4px; }
+      h1 { font-size: 30px; }
+      .sub { margin-bottom: 20px; font-size: 13px; }
+      .nav { gap: 18px; font-size: 13px; width: 100%; }
+
+      table, thead, tbody, tr, td { display: block; width: 100%; }
+      table { background: transparent; border: none; border-radius: 0; overflow: visible; }
+      thead { position: absolute; left: -9999px; }
+      tbody tr {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 14px 16px;
+        margin-bottom: 10px;
+        position: relative;
+      }
+      tbody tr:hover { background: var(--panel); }
+      tbody td {
+        border: none;
+        padding: 5px 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        font-size: 13.5px;
+      }
+      tbody td.num { text-align: right; }
+      tbody td::before {
+        content: attr(data-label);
+        color: var(--muted);
+        text-transform: uppercase;
+        font-size: 10.5px;
+        letter-spacing: 0.08em;
+        font-weight: 500;
+        flex-shrink: 0;
+      }
+      tbody td.rank {
+        position: absolute;
+        top: 14px;
+        right: 16px;
+        padding: 2px 8px;
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        font-size: 11px;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+        display: inline-block;
+        width: auto;
+      }
+      tbody td.rank::before { content: '#'; margin-right: 1px; }
+      tbody td.wallet {
+        padding: 0 60px 10px 0;
+        margin-bottom: 6px;
+        border-bottom: 1px solid var(--border);
+        font-size: 14px;
+      }
+      tbody td.wallet::before { display: none; }
+      tbody td.wallet a { font-size: 14px; }
+    }
   </style>
 </head>
 <body>
@@ -139,13 +198,13 @@
           const pnlSign = w.pnl >= 0 ? '+' : '-';
           return `
             <tr>
-              <td>${i + 1}</td>
+              <td class="rank">${i + 1}</td>
               <td class="wallet"><a href="https://solscan.io/account/${w.wallet}" target="_blank" rel="noopener">${shortAddr(w.wallet)}</a></td>
-              <td class="num">${w.avgEntryMcap ? fmtUsd(w.avgEntryMcap) : '—'}</td>
-              <td class="num">${w.avgExitMcap ? fmtUsd(w.avgExitMcap) : '—'}</td>
-              <td class="num">${w.tokens}</td>
-              <td class="num">${w.avgMultiple ? w.avgMultiple.toFixed(2) + 'x' : '—'}</td>
-              <td class="num ${pnlClass}">${pnlSign}${fmtUsd(Math.abs(w.pnl))}</td>
+              <td class="num" data-label="Avg Entry MC">${w.avgEntryMcap ? fmtUsd(w.avgEntryMcap) : '—'}</td>
+              <td class="num" data-label="Avg Exit MC">${w.avgExitMcap ? fmtUsd(w.avgExitMcap) : '—'}</td>
+              <td class="num" data-label="Tokens">${w.tokens}</td>
+              <td class="num" data-label="Avg Multiple">${w.avgMultiple ? w.avgMultiple.toFixed(2) + 'x' : '—'}</td>
+              <td class="num ${pnlClass}" data-label="Overall PNL">${pnlSign}${fmtUsd(Math.abs(w.pnl))}</td>
             </tr>`;
         }).join('');
         results.innerHTML = `
