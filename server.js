@@ -184,9 +184,37 @@ app.get('/api/leaderboard', async (_req, res) => {
 
 app.get('/api/history', async (_req, res) => {
   try {
-    const { tokens } = await loadStore();
-    const sorted = [...tokens].sort((a, b) => (b.scannedAt || 0) - (a.scannedAt || 0));
-    res.json({ tokens: sorted });
+    const { scans, tokens } = await loadStore();
+    const byAddress = new Map();
+    const scansByToken = new Map();
+    for (const s of scans) {
+      if (!s.token) continue;
+      const list = scansByToken.get(s.token) || [];
+      list.push(s);
+      scansByToken.set(s.token, list);
+    }
+    for (const [address, list] of scansByToken) {
+      let totalPnl = 0, entrySum = 0, entryCount = 0, exitSum = 0, exitCount = 0, latest = 0;
+      for (const s of list) {
+        totalPnl += Number(s.pnl) || 0;
+        const entry = Number(s.entryMcap) || 0;
+        const exit = Number(s.exitMcap) || 0;
+        if (entry) { entrySum += entry; entryCount++; }
+        if (exit) { exitSum += exit; exitCount++; }
+        if (s.scannedAt > latest) latest = s.scannedAt;
+      }
+      byAddress.set(address, {
+        address,
+        scannedAt: latest,
+        traderCount: list.length,
+        totalPnl,
+        avgEntryMcap: entryCount ? entrySum / entryCount : 0,
+        avgExitMcap: exitCount ? exitSum / exitCount : 0,
+      });
+    }
+    for (const t of tokens) byAddress.set(t.address, t);
+    const merged = [...byAddress.values()].sort((a, b) => (b.scannedAt || 0) - (a.scannedAt || 0));
+    res.json({ tokens: merged });
   } catch (err) {
     res.status(500).json({ error: err.message || String(err) });
   }
