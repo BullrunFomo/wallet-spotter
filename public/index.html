@@ -145,16 +145,15 @@
       margin-left: 6px;
       padding: 0;
       background: transparent;
-      border: 1px solid var(--border);
-      border-radius: 5px;
+      border: none;
       color: var(--muted);
       cursor: pointer;
-      transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease, transform 0.1s ease;
+      transition: color 0.15s ease, transform 0.1s ease;
     }
-    .copy-btn:hover { color: var(--text); border-color: var(--accent); background: rgba(217, 119, 87, 0.08); }
+    .copy-btn:hover { color: var(--text); }
     .copy-btn:active { transform: scale(0.94); }
-    .copy-btn.copied { color: var(--buy); border-color: var(--buy); background: rgba(143, 181, 115, 0.1); }
-    .copy-btn svg { width: 11px; height: 11px; pointer-events: none; }
+    .copy-btn.copied { color: var(--buy); }
+    .copy-btn svg { width: 12px; height: 12px; pointer-events: none; }
     .buy { color: var(--buy); }
     .sell { color: var(--sell); }
     .status { color: var(--muted); padding: 24px; text-align: center; font-size: 14px; }
