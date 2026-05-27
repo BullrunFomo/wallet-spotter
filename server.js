@@ -130,12 +130,15 @@ async function stGet(pathname) {
 async function fetchSolanaTracker(address) {
   if (!ST_API_KEY) throw new Error('SOLANATRACKER_API_KEY not configured');
   const [traders, tokenInfo] = await Promise.all([
-    stGet(`/top-traders/${encodeURIComponent(address)}`),
+    stGet(`/top-traders/${encodeURIComponent(address)}`).catch(() => null),
     stGet(`/tokens/${encodeURIComponent(address)}`).catch(() => null),
   ]);
+  const list = Array.isArray(traders) ? traders : (traders?.traders || traders?.data || []);
+  if (!tokenInfo?.token && list.length === 0) {
+    throw new Error('Not a valid Solana token contract address');
+  }
   const totalSupply = Number(tokenInfo?.pools?.[0]?.tokenSupply || 0);
   const ticker = tokenInfo?.token?.symbol || tokenInfo?.symbol || '';
-  const list = Array.isArray(traders) ? traders : (traders?.traders || traders?.data || []);
   const items = list.map(it => {
     const held = Number(it.held || 0);
     const sold = Number(it.sold || 0);
