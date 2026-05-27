@@ -81,6 +81,26 @@
     .addr { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 12.5px; }
     .addr a { color: var(--accent); text-decoration: none; }
     .addr a:hover { text-decoration: underline; }
+    .copy-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      vertical-align: middle;
+      width: 20px;
+      height: 20px;
+      margin-left: 6px;
+      padding: 0;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease, transform 0.1s ease;
+    }
+    .copy-btn:hover { color: var(--text); border-color: var(--accent); background: rgba(217, 119, 87, 0.08); }
+    .copy-btn:active { transform: scale(0.94); }
+    .copy-btn.copied { color: var(--buy); border-color: var(--buy); background: rgba(143, 181, 115, 0.1); }
+    .copy-btn svg { width: 11px; height: 11px; pointer-events: none; }
     .buy { color: var(--buy); }
     .sell { color: var(--sell); }
     .status { color: var(--muted); padding: 24px; text-align: center; font-size: 14px; }
@@ -140,6 +160,7 @@
       }
       tbody td.rank::before { content: '#'; margin-right: 1px; }
       tbody td.addr {
+        display: block;
         padding: 0 60px 10px 0;
         margin-bottom: 6px;
         border-bottom: 1px solid var(--border);
@@ -182,6 +203,25 @@
     const shortAddr = (a) => (a ? a.slice(0, 4) + '…' + a.slice(-4) : '');
     const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+    const COPY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    const CHECK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+    const copyBtn = (addr) => `<button type="button" class="copy-btn" data-copy="${addr}" title="Copy address" aria-label="Copy address">${COPY_ICON}</button>`;
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.copy-btn');
+      if (!btn) return;
+      e.preventDefault();
+      const addr = btn.getAttribute('data-copy');
+      if (!addr) return;
+      navigator.clipboard.writeText(addr).then(() => {
+        btn.classList.add('copied');
+        btn.innerHTML = CHECK_ICON;
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          btn.innerHTML = COPY_ICON;
+        }, 1200);
+      }).catch(() => {});
+    });
+
     (async () => {
       try {
         const r = await fetch('/api/history');
@@ -203,7 +243,7 @@
           return `
             <tr>
               <td class="rank">${i + 1}</td>
-              <td class="addr"><a href="https://solscan.io/token/${t.address}" target="_blank" rel="noopener">${shortAddr(t.address)}</a></td>
+              <td class="addr"><a href="https://solscan.io/token/${t.address}" target="_blank" rel="noopener">${shortAddr(t.address)}</a>${copyBtn(t.address)}</td>
               <td class="num" data-label="Ticker">${ticker}</td>
               <td class="num" data-label="Traders">${t.traderCount || 0}</td>
               <td class="num" data-label="Avg Entry MC">${t.avgEntryMcap ? fmtUsd(t.avgEntryMcap) : '—'}</td>
