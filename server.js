@@ -222,7 +222,9 @@ function buildHistory(store) {
     });
   }
   for (const t of store.tokens) byAddress.set(t.address, t);
-  return [...byAddress.values()].sort((a, b) => (b.scannedAt || 0) - (a.scannedAt || 0));
+  return [...byAddress.values()]
+    .filter(t => (t.traderCount || 0) > 0)
+    .sort((a, b) => (b.scannedAt || 0) - (a.scannedAt || 0));
 }
 
 let backfillInFlight = null;
